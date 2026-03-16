@@ -87,6 +87,19 @@ public class BookMyStay {
         for (String roomType : roomInventory.keySet()) {
             System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
         }
+        System.out.println("\nSearch Available Rooms (Read-only):");
+        System.out.println("Available rooms with at least 1 vacancy:");
+
+        for (String roomType : roomInventory.keySet()) {
+            int available = roomInventory.get(roomType);
+            if (available > 0) { // only show rooms with availability
+                System.out.println(roomType + " - Beds: " +
+                        (roomType.equals("Single Room") ? 1 : roomType.equals("Double Room") ? 2 : 3) +
+                        ", Price: $" +
+                        (roomType.equals("Single Room") ? 100 : roomType.equals("Double Room") ? 180 : 300) +
+                        ", Available: " + available);
+            }
+        }
         sc.close();
 
 
