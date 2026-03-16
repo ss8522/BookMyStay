@@ -1,6 +1,7 @@
 import java.util.Scanner;
 import java.util.HashMap;
-
+import java.util.Queue;
+import java.util.LinkedList;
 public class BookMyStay {
     public static void main(String[] args) {
 
@@ -64,13 +65,11 @@ public class BookMyStay {
             System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
         }
 
-        // User input for booking
         System.out.println("\nWhich room would you like to book?");
         System.out.println("Options: Single Room, Double Room, Suite Room");
         System.out.print("Enter room type: ");
-        String roomChoice = sc.nextLine(); // renamed variable to avoid conflict
+        String roomChoice = sc.nextLine();
 
-        // Check availability and update
         if (roomInventory.containsKey(roomChoice)) {
             int available = roomInventory.get(roomChoice);
             if (available > 0) {
@@ -92,13 +91,36 @@ public class BookMyStay {
 
         for (String roomType : roomInventory.keySet()) {
             int available = roomInventory.get(roomType);
-            if (available > 0) { // only show rooms with availability
+            if (available > 0) {
                 System.out.println(roomType + " - Beds: " +
                         (roomType.equals("Single Room") ? 1 : roomType.equals("Double Room") ? 2 : 3) +
                         ", Price: $" +
                         (roomType.equals("Single Room") ? 100 : roomType.equals("Double Room") ? 180 : 300) +
                         ", Available: " + available);
             }
+        }
+        Queue<String> bookingQueue = new LinkedList<>();
+
+        System.out.println("\n--- Booking Request Queue ---");
+        System.out.println("Enter booking requests (type 'done' to finish):");
+
+        while (true) {
+            System.out.print("Guest name and room type (e.g., John, Single Room): ");
+            String request = sc.nextLine();
+
+            if (request.equalsIgnoreCase("done")) {
+                break;
+            }
+
+            bookingQueue.add(request);
+            System.out.println("Request added to queue.");
+        }
+
+        System.out.println("\nBooking Requests in Queue (First-Come-First-Served):");
+        int count = 1;
+        for (String req : bookingQueue) {
+            System.out.println(count + ". " + req);
+            count++;
         }
         sc.close();
 
