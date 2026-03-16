@@ -1,4 +1,6 @@
 import java.util.Scanner;
+import java.util.HashMap;
+
 public class BookMyStay {
     public static void main(String[] args) {
 
@@ -19,7 +21,6 @@ public class BookMyStay {
         System.out.println("Hotel Booking System v2.1");
         System.out.println("=================================");
 
-        // Room availability
         int singleAvailable = 5;
         int doubleAvailable = 3;
         int suiteAvailable = 2;
@@ -53,7 +54,39 @@ public class BookMyStay {
         else {
             System.out.println("Invalid choice!");
         }
+        HashMap<String, Integer> roomInventory = new HashMap<>();
+        roomInventory.put("Single Room", 5);
+        roomInventory.put("Double Room", 3);
+        roomInventory.put("Suite Room", 2);
 
+        System.out.println("\nCurrent Room Inventory:");
+        for (String roomType : roomInventory.keySet()) {
+            System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
+        }
+
+        // User input for booking
+        System.out.println("\nWhich room would you like to book?");
+        System.out.println("Options: Single Room, Double Room, Suite Room");
+        System.out.print("Enter room type: ");
+        String roomChoice = sc.nextLine(); // renamed variable to avoid conflict
+
+        // Check availability and update
+        if (roomInventory.containsKey(roomChoice)) {
+            int available = roomInventory.get(roomChoice);
+            if (available > 0) {
+                roomInventory.put(roomChoice, available - 1);
+                System.out.println("Booking confirmed for " + roomChoice + "!");
+            } else {
+                System.out.println("Sorry, " + roomChoice + " is fully booked.");
+            }
+        } else {
+            System.out.println("Invalid room type entered.");
+        }
+
+        System.out.println("\nUpdated Room Inventory:");
+        for (String roomType : roomInventory.keySet()) {
+            System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
+        }
         sc.close();
 
 
