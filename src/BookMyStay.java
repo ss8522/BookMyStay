@@ -2,6 +2,7 @@ import java.util.Scanner;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.util.HashSet;
 public class BookMyStay {
     public static void main(String[] args) {
 
@@ -121,6 +122,63 @@ public class BookMyStay {
         for (String req : bookingQueue) {
             System.out.println(count + ". " + req);
             count++;
+        }
+        System.out.println("\n--- Processing Booking Queue & Allocating Rooms ---");
+
+
+        HashMap<String, HashSet<String>> allocatedRooms = new HashMap<>();
+        allocatedRooms.put("Single Room", new HashSet<>());
+        allocatedRooms.put("Double Room", new HashSet<>());
+        allocatedRooms.put("Suite Room", new HashSet<>());
+
+        int roomIdCounter = 1;
+
+        while (!bookingQueue.isEmpty()) {
+            String request = bookingQueue.poll();
+            String[] parts = request.split(",", 2);
+
+            if (parts.length < 2) {
+                System.out.println("Invalid request format: " + request);
+                continue;
+            }
+
+            String guestName = parts[0].trim();
+            String requestedRoom = parts[1].trim();
+
+
+            if (roomInventory.containsKey(requestedRoom)) {
+                int available = roomInventory.get(requestedRoom);
+
+                if (available > 0) {
+
+                    String roomId = requestedRoom.substring(0, 1).toUpperCase() + roomIdCounter;
+                    roomIdCounter++;
+
+
+                    allocatedRooms.get(requestedRoom).add(roomId);
+
+
+                    roomInventory.put(requestedRoom, available - 1);
+
+                    System.out.println("Reservation confirmed for " + guestName +
+                            " -> " + requestedRoom + " [Room ID: " + roomId + "]");
+                } else {
+                    System.out.println("Sorry, " + requestedRoom + " is fully booked for " + guestName);
+                }
+            } else {
+                System.out.println("Invalid room type requested by " + guestName);
+            }
+        }
+
+        System.out.println("\nFinal Allocated Rooms:");
+        for (String roomType : allocatedRooms.keySet()) {
+            HashSet<String> ids = allocatedRooms.get(roomType);
+            System.out.println(roomType + " -> " + ids);
+        }
+
+        System.out.println("\nUpdated Room Inventory After Allocation:");
+        for (String roomType : roomInventory.keySet()) {
+            System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
         }
         sc.close();
 
