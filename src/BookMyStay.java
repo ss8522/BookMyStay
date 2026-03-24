@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.*;
+import java.io.*;
 class Service {
     String name;
     int price;
@@ -29,6 +30,15 @@ class BookingRequest {
     BookingRequest(String guestName, String roomType) {
         this.guestName = guestName;
         this.roomType = roomType;
+    }
+}
+class HotelData implements Serializable {
+    HashMap<String, Integer> roomInventory;
+    List<String> bookingHistory;
+
+    HotelData(HashMap<String, Integer> roomInventory, List<String> bookingHistory) {
+        this.roomInventory = roomInventory;
+        this.bookingHistory = bookingHistory;
     }
 }
 public class BookMyStay {
@@ -65,7 +75,35 @@ public class BookMyStay {
                     " failed for " + req.guestName + " (No rooms)");
         }
     }
+    static final String FILE_NAME = "hotel_data.ser";
+
+
+    // SAVE DATA
+    public static void saveData(HashMap<String, Integer> roomInventory,
+                                List<String> bookingHistory) {
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME));
+            out.writeObject(new HotelData(roomInventory, bookingHistory));
+            out.close();
+            System.out.println("Data saved successfully!");
+        } catch (IOException e) {
+            System.out.println("Error saving data.");
+        }
+    }
+    public static HotelData loadData() {
+        try {
+            ObjectInputStream in = new ObjectInputStream(new FileInputStream(FILE_NAME));
+            HotelData data = (HotelData) in.readObject();
+            in.close();
+            System.out.println("Data loaded successfully!");
+            return data;
+        } catch (Exception e) {
+            System.out.println("No saved data found. Starting fresh.");
+            return null;
+        }
+    }
     public static void main(String[] args) {
+
 
 
             System.out.println("====================================");
@@ -431,6 +469,9 @@ public class BookMyStay {
         concurrentQueue.add(new BookingRequest("Emma", "Suite Room"));
         concurrentQueue.add(new BookingRequest("David", "Single Room"));
 
+        final HashMap<String, Integer> finalInventory = roomInventory;
+        final Queue<BookingRequest> finalQueue = concurrentQueue;
+
         Runnable task = () -> {
             for (int i = 0; i < 3; i++) {
                 processConcurrentBooking(concurrentQueue, roomInventory);
@@ -461,6 +502,61 @@ public class BookMyStay {
         for (String type : roomInventory.keySet()) {
             System.out.println(type + " : " + roomInventory.get(type));
         }
+
+        HotelData data = loadData();
+
+        if (data != null) {
+            roomInventory = data.roomInventory;      // assign only
+            bookingHistory = data.bookingHistory;    // assign only
+        } else {
+            roomInventory = new HashMap<>();
+            roomInventory.put("Single Room", 5);
+            roomInventory.put("Double Room", 3);
+            roomInventory.put("Suite Room", 2);
+
+            bookingHistory = new ArrayList<>();
+        }
+
+        System.out.println("\n===== Book My Stay (Persistence Enabled) =====");
+
+        // BOOKING INPUT
+        System.out.print("Enter Guest Name: ");
+        String guestName = sc.nextLine();
+
+        System.out.print("Enter Room Type (Single Room / Double Room / Suite Room): ");
+        String roomType = sc.nextLine();
+
+        // BOOKING LOGIC
+        if (roomInventory.containsKey(roomType) && roomInventory.get(roomType) > 0) {
+
+            roomInventory.put(roomType, roomInventory.get(roomType) - 1);
+
+            String record = guestName + " | " + roomType;
+            bookingHistory.add(record);
+
+            System.out.println("Booking Confirmed!");
+
+        } else {
+            System.out.println("Booking Failed: Room not available.");
+        }
+
+        // DISPLAY INVENTORY
+        System.out.println("\nCurrent Inventory:");
+        for (String type : roomInventory.keySet()) {
+            System.out.println(type + " : " + roomInventory.get(type));
+        }
+
+        // DISPLAY HISTORY
+        System.out.println("\nBooking History:");
+        for (String record : bookingHistory) {
+            System.out.println(record);
+        }
+
+        // SAVE BEFORE EXIT
+        saveData(roomInventory, bookingHistory);
+
+
+
 
         sc.close();
 
