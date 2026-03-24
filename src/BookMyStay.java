@@ -22,6 +22,15 @@ class InvalidBookingException extends Exception {
         super(message);
     }
 }
+class BookingRequest {
+    String guestName;
+    String roomType;
+
+    BookingRequest(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+}
 public class BookMyStay {
     public static void validateBooking(String guestName, String roomType, HashMap<String, Integer> roomInventory) throws InvalidBookingException {
         if (guestName == null || guestName.trim().isEmpty()) {
@@ -32,6 +41,28 @@ public class BookMyStay {
         }
         if (roomInventory.get(roomType) <= 0) {
             throw new InvalidBookingException("No available rooms for: " + roomType);
+        }
+    }
+    public static synchronized void processConcurrentBooking(
+            Queue<BookingRequest> queue,
+            HashMap<String, Integer> roomInventory) {
+
+        if (queue.isEmpty()) return;
+
+        BookingRequest req = queue.poll();
+
+        if (req == null) return;
+
+        String roomType = req.roomType;
+
+        if (roomInventory.containsKey(roomType) && roomInventory.get(roomType) > 0) {
+            roomInventory.put(roomType, roomInventory.get(roomType) - 1);
+
+            System.out.println(Thread.currentThread().getName() +
+                    " booked " + req.guestName + " -> " + roomType);
+        } else {
+            System.out.println(Thread.currentThread().getName() +
+                    " failed for " + req.guestName + " (No rooms)");
         }
     }
     public static void main(String[] args) {
@@ -128,6 +159,7 @@ public class BookMyStay {
                 }
             }
             Queue<String> bookingQueue = new LinkedList<>();
+            Queue<BookingRequest> concurrentQueue = new LinkedList<>();
 
             System.out.println("\n--- Booking Request Queue ---");
             System.out.println("Enter booking requests (type 'done' to finish):");
@@ -391,8 +423,46 @@ public class BookMyStay {
             for (String record : bookingHistory) {
                 System.out.println(record);
             }
+        System.out.println("\n--- Concurrent Booking Simulation ---");
 
-            sc.close();
+        concurrentQueue.add(new BookingRequest("John", "Single Room"));
+        concurrentQueue.add(new BookingRequest("Alice", "Double Room"));
+        concurrentQueue.add(new BookingRequest("Bob", "Single Room"));
+        concurrentQueue.add(new BookingRequest("Emma", "Suite Room"));
+        concurrentQueue.add(new BookingRequest("David", "Single Room"));
+
+        Runnable task = () -> {
+            for (int i = 0; i < 3; i++) {
+                processConcurrentBooking(concurrentQueue, roomInventory);
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        Thread t1 = new Thread(task, "Thread-1");
+        Thread t2 = new Thread(task, "Thread-2");
+        Thread t3 = new Thread(task, "Thread-3");
+
+        t1.start();
+        t2.start();
+        t3.start();
+
+        try {
+            t1.join();
+            t2.join();
+            t3.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("\nInventory After Concurrent Booking:");
+        for (String type : roomInventory.keySet()) {
+            System.out.println(type + " : " + roomInventory.get(type));
+        }
+
+        sc.close();
 
 
         }
