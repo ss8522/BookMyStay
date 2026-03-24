@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.*;
+import java.io.*;
 class Service {
     String name;
     int price;
@@ -31,7 +32,19 @@ class BookingRequest {
         this.roomType = roomType;
     }
 }
+
+class HotelData implements Serializable {
+    HashMap<String, Integer> roomInventory;
+    List<String> bookingHistory;
+
+    HotelData(HashMap<String, Integer> roomInventory, List<String> bookingHistory) {
+        this.roomInventory = roomInventory;
+        this.bookingHistory = bookingHistory;
+    }
+}
+
 public class BookMyStay {
+    static final String FILE_NAME = "hotel_data.ser";
     public static void validateBooking(String guestName, String roomType, HashMap<String, Integer> roomInventory) throws InvalidBookingException {
         if (guestName == null || guestName.trim().isEmpty()) {
             throw new InvalidBookingException("Guest name cannot be empty.");
@@ -65,10 +78,39 @@ public class BookMyStay {
                     " failed for " + req.guestName + " (No rooms)");
         }
     }
+
+
+
+    // SAVE DATA
+    public static void saveData(HashMap<String, Integer> roomInventory,
+                                List<String> bookingHistory) {
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME));
+            out.writeObject(new HotelData(roomInventory, bookingHistory));
+            out.close();
+            System.out.println("Data saved successfully!");
+        } catch (IOException e) {
+            System.out.println("Error saving data.");
+        }
+    }
+    public static HotelData loadData() {
+        try {
+            ObjectInputStream in = new ObjectInputStream(new FileInputStream(FILE_NAME));
+            HotelData data = (HotelData) in.readObject();
+            in.close();
+            System.out.println("Data loaded successfully!");
+            return data;
+        } catch (Exception e) {
+            System.out.println("No saved data found. Starting fresh.");
+            return null;
+        }
+    }
     public static void main(String[] args) {
 
 
-            System.out.println("====================================");
+
+
+        System.out.println("====================================");
             System.out.println("   Welcome to Book My Stay App");
             System.out.println("   Hotel Booking Management System");
             System.out.println("   Version: 1.0");
@@ -423,44 +465,115 @@ public class BookMyStay {
             for (String record : bookingHistory) {
                 System.out.println(record);
             }
-        System.out.println("\n--- Concurrent Booking Simulation ---");
+        HotelData data = loadData();
 
-        concurrentQueue.add(new BookingRequest("John", "Single Room"));
-        concurrentQueue.add(new BookingRequest("Alice", "Double Room"));
-        concurrentQueue.add(new BookingRequest("Bob", "Single Room"));
-        concurrentQueue.add(new BookingRequest("Emma", "Suite Room"));
-        concurrentQueue.add(new BookingRequest("David", "Single Room"));
+        if (data != null) {
+            roomInventory = data.roomInventory;
+            bookingHistory = data.bookingHistory;
+        } else {
+            roomInventory = new HashMap<>();
+            roomInventory.put("Single Room", 5);
+            roomInventory.put("Double Room", 3);
+            roomInventory.put("Suite Room", 2);
+            bookingHistory = new ArrayList<>();
+        }
+
+
+
+        int roomId = 1;
+
+        // -------- BOOKING --------
+        System.out.print("Enter Guest Name: ");
+        String guest = sc.nextLine();
+
+        System.out.print("Enter Room Type: ");
+        String room = sc.nextLine();
+
+        try {
+            validateBooking(guest, room, roomInventory);
+
+            String resId = "RES" + roomId++;
+
+            reservationMap.put(resId, guest);
+            reservationRoomMap.put(resId, room);
+
+            roomInventory.put(room, roomInventory.get(room) - 1);
+
+            bookingHistory.add(resId + " | " + guest + " | " + room);
+
+            System.out.println("Booking Success: " + resId);
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        // -------- CANCELLATION --------
+        System.out.print("\nEnter Reservation ID to cancel: ");
+        String cancelId2 = sc.nextLine();
+
+        try {
+            if (!reservationMap.containsKey(cancelId2))
+                throw new InvalidBookingException("Not found");
+
+            String type = reservationRoomMap.get(cancelId2);
+
+            rollbackStack.push(cancelId2);
+
+            roomInventory.put(type, roomInventory.get(type) + 1);
+
+            reservationMap.remove(cancelId2);
+            reservationRoomMap.remove(cancelId2);
+
+            bookingHistory.add(cancelId2 + " CANCELLED");
+
+            System.out.println("Cancelled!");
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        System.out.println("Rollback Stack: " + rollbackStack);
+
+        // -------- CONCURRENT BOOKING --------
+        Queue<BookingRequest> queue = new LinkedList<>();
+        queue.add(new BookingRequest("A", "Single Room"));
+        queue.add(new BookingRequest("B", "Double Room"));
+
+        final HashMap<String, Integer> finalInv = roomInventory;
+        final Queue<BookingRequest> finalQ = queue;
 
         Runnable task = () -> {
-            for (int i = 0; i < 3; i++) {
-                processConcurrentBooking(concurrentQueue, roomInventory);
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            for (int i = 0; i < 2; i++) {
+                processConcurrentBooking(finalQ, finalInv);
             }
         };
 
-        Thread t1 = new Thread(task, "Thread-1");
-        Thread t2 = new Thread(task, "Thread-2");
-        Thread t3 = new Thread(task, "Thread-3");
+        Thread t1 = new Thread(task);
+        Thread t2 = new Thread(task);
 
         t1.start();
         t2.start();
-        t3.start();
 
         try {
             t1.join();
             t2.join();
-            t3.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println("\nInventory After Concurrent Booking:");
-        for (String type : roomInventory.keySet()) {
-            System.out.println(type + " : " + roomInventory.get(type));
-        }
+        } catch (Exception e) {}
+
+        // -------- DISPLAY --------
+        System.out.println("\nInventory:");
+        for (String k : roomInventory.keySet())
+            System.out.println(k + " : " + roomInventory.get(k));
+
+        System.out.println("\nHistory:");
+        for (String h : bookingHistory)
+            System.out.println(h);
+
+        // -------- SAVE --------
+        saveData(roomInventory, bookingHistory);
+
+
+
+
 
         sc.close();
 
