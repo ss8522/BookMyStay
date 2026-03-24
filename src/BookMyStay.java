@@ -255,6 +255,42 @@ public class BookMyStay {
 
             System.out.println("Total Add-On Cost: $" + total);
         }
+        List<String> bookingHistory = new ArrayList<>();
+        System.out.println("\n--- Booking History ---");
+
+        if (bookingHistory.isEmpty()) {
+            System.out.println("No bookings found.");
+        } else {
+            int index = 1;
+            for (String record : bookingHistory) {
+                System.out.println(index + ". " + record);
+                index++;
+            }
+        }
+
+// Summary Report
+        System.out.println("\n--- Booking Summary Report ---");
+
+        HashMap<String, Integer> report = new HashMap<>();
+
+        for (String record : bookingHistory) {
+
+            // record format: RES1 | John | Single Room
+            String[] parts = record.split("\\|");
+
+            if (parts.length < 3) continue;
+
+            String roomType = parts[2].trim();
+
+            report.put(roomType, report.getOrDefault(roomType, 0) + 1);
+        }
+
+// Print report
+        for (String roomType : report.keySet()) {
+            System.out.println(roomType + " Bookings: " + report.get(roomType));
+        }
+
+        System.out.println("\nTotal Bookings: " + bookingHistory.size());
         sc.close();
 
 
