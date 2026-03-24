@@ -17,7 +17,23 @@ class Service {
         return name + " ($" + price + ")";
     }
 }
+class InvalidBookingException extends Exception {
+    InvalidBookingException(String message) {
+        super(message);
+    }
+}
 public class BookMyStay {
+    public static void validateBooking(String guestName, String roomType, HashMap<String, Integer> roomInventory) throws InvalidBookingException {
+        if (guestName == null || guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
+        }
+        if (!roomInventory.containsKey(roomType)) {
+            throw new InvalidBookingException("Invalid room type: " + roomType);
+        }
+        if (roomInventory.get(roomType) <= 0) {
+            throw new InvalidBookingException("No available rooms for: " + roomType);
+        }
+    }
     public static void main(String[] args) {
 
 
@@ -291,6 +307,49 @@ public class BookMyStay {
         }
 
         System.out.println("\nTotal Bookings: " + bookingHistory.size());
+        while (!bookingQueue.isEmpty()) {
+            String request = bookingQueue.poll();
+            String[] parts = request.split(",", 2);
+
+            if (parts.length < 2) {
+                System.out.println("Invalid request format: " + request);
+                continue;
+            }
+
+            String guestName = parts[0].trim();
+            String requestedRoom = parts[1].trim();
+
+            try {
+                // ✅ Validate booking before allocation
+                validateBooking(guestName, requestedRoom, roomInventory);
+
+                // Generate reservation ID
+                String resId = "RES" + roomIdCounter++;
+                reservationMap.put(resId, guestName);
+
+                // Allocate room
+                allocatedRooms.get(requestedRoom).add(resId);
+                roomInventory.put(requestedRoom, roomInventory.get(requestedRoom) - 1);
+
+                System.out.println("Booked: " + guestName + " -> " + requestedRoom + " [" + resId + "]");
+
+                // Save booking history
+                bookingHistory.add(resId + " | " + guestName + " | " + requestedRoom);
+
+            } catch (InvalidBookingException e) {
+                System.out.println("Booking failed: " + e.getMessage());
+            }
+        }
+        for (String resId : reservationMap.keySet()) {
+            try {
+                if (!reservationMap.containsKey(resId)) {
+                    throw new InvalidBookingException("Reservation not found: " + resId);
+                }
+                // proceed
+            } catch (InvalidBookingException e) {
+                System.out.println("Add-On Error: " + e.getMessage());
+            }
+        }
         sc.close();
 
 
