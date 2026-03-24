@@ -3,6 +3,20 @@ import java.util.HashMap;
 import java.util.Queue;
 import java.util.LinkedList;
 import java.util.HashSet;
+import java.util.*;
+class Service {
+    String name;
+    int price;
+
+    Service(String name, int price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String toString() {
+        return name + " ($" + price + ")";
+    }
+}
 public class BookMyStay {
     public static void main(String[] args) {
 
@@ -179,6 +193,67 @@ public class BookMyStay {
         System.out.println("\nUpdated Room Inventory After Allocation:");
         for (String roomType : roomInventory.keySet()) {
             System.out.println(roomType + " : " + roomInventory.get(roomType) + " available");
+        }
+        HashMap<Integer, Service> serviceCatalog = new HashMap<>();
+        serviceCatalog.put(1, new Service("Breakfast", 20));
+        serviceCatalog.put(2, new Service("Airport Pickup", 50));
+        serviceCatalog.put(3, new Service("Extra Bed", 30));
+
+        HashMap<String, List<Service>> addOnServices = new HashMap<>();
+        HashMap<String, String> reservationMap = new HashMap<>();
+
+        System.out.println("\n--- Add-On Service Selection ---");
+
+        for (String resId : reservationMap.keySet()) {
+
+            System.out.println("\nReservation: " + resId +
+                    " | Guest: " + reservationMap.get(resId));
+
+            List<Service> selected = new ArrayList<>();
+
+            while (true) {
+                System.out.println("1. Breakfast ($20)");
+                System.out.println("2. Airport Pickup ($50)");
+                System.out.println("3. Extra Bed ($30)");
+                System.out.println("0. Done");
+
+                int opt = sc.nextInt();
+
+                if (opt == 0) break;
+
+                if (serviceCatalog.containsKey(opt)) {
+                    selected.add(serviceCatalog.get(opt));
+                    System.out.println("Added: " + serviceCatalog.get(opt).name);
+                } else {
+                    System.out.println("Invalid option!");
+                }
+            }
+
+            sc.nextLine(); // clear buffer
+            addOnServices.put(resId, selected);
+        }
+
+        // Billing
+        System.out.println("\n--- Final Billing ---");
+
+        for (String resId : addOnServices.keySet()) {
+
+            List<Service> services = addOnServices.get(resId);
+            int total = 0;
+
+            System.out.println("\nReservation: " + resId);
+
+            if (services.isEmpty()) {
+                System.out.println("No add-ons selected.");
+                continue;
+            }
+
+            for (Service s : services) {
+                System.out.println("- " + s);
+                total += s.price;
+            }
+
+            System.out.println("Total Add-On Cost: $" + total);
         }
         sc.close();
 
